@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const AdminLogin = () => {
@@ -24,7 +24,10 @@ const AdminLogin = () => {
     setError('');
     setLoading(true);
 
-    const result = await login(formData);
+    const result = await login({
+      ...formData,
+      user_type: 'admin',
+    });
 
     if (result.success) {
       if (result.data.role === 'admin') {
@@ -89,6 +92,13 @@ const AdminLogin = () => {
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
+
+        <p className="mt-4 text-center text-gray-600">
+          Don't have an admin account?{' '}
+          <Link to="/admin/register" className="text-blue-600 hover:text-blue-800">
+            Register
+          </Link>
+        </p>
       </div>
     </div>
   );

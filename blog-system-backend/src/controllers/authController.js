@@ -3,21 +3,47 @@ const jwt = require('jsonwebtoken');
 const config = require('../config/env');
 const { User } = require('../models');
 
-const generateToken = (userId, role) => {
-  return jwt.sign({ userId, role }, config.jwt.secret, {
-    expiresIn: config.jwt.expiresIn,
+const generateToken = (userId, role, email) => {
+  return jwt.sign({ userId, role, email }, config.jwt.secret, {
+    expiresIn: '15m',
   });
 };
 
 const generateRefreshToken = (userId) => {
   return jwt.sign({ userId }, config.jwt.refreshSecret, {
-    expiresIn: config.jwt.refreshExpiresIn,
+    expiresIn: '7d',
   });
 };
 
 const register = async (req, res, next) => {
   try {
-    const { email, password, username, first_name, last_name, role } = req.body;
+    const { email, password, username, first_name, last_name, user_type, admin_secret } = req.body;
+
+    if (!email || !password || !username || !first_name || !last_name) {
+      return res.status(400).json({
+        success: false,
+        message: 'All fields are required',
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long',
+      });
+    }
+
+    const userRole = user_type === 'admin' ? 'admin' : 'user';
+
+    if (userRole === 'admin') {
+      const expectedAdminSecret = process.env.ADMIN_SECRET_KEY || 'admin_secret_2024';
+      if (admin_secret !== expectedAdminSecret) {
+        return res.status(403).json({
+          success: false,
+          message: 'Invalid admin secret key',
+        });
+      }
+    }
 
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
@@ -43,17 +69,24 @@ const register = async (req, res, next) => {
       username,
       first_name,
       last_name,
-      role: role || 'user',
+      role: userRole,
     });
 
-    const token = generateToken(userId, role || 'user');
+    const token = generateToken(userId, userRole, email);
     const refreshToken = generateRefreshToken(userId);
+
+    const user = await User.findById(userId);
 
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
       data: {
         userId,
+        username: user.username,
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        role: user.role,
         token,
         refreshToken,
       },
@@ -65,13 +98,27 @@ const register = async (req, res, next) => {
 
 const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, user_type } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required',
+      });
+    }
 
     const user = await User.findByEmail(email);
     if (!user) {
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials',
+      });
+    }
+
+    if (user_type && user.role !== user_type) {
+      return res.status(403).json({
+        success: false,
+        message: `Access denied. ${user_type === 'admin' ? 'Admin' : 'User'} credentials required.`,
       });
     }
 
@@ -83,7 +130,7 @@ const login = async (req, res, next) => {
       });
     }
 
-    const token = generateToken(user.id, user.role);
+    const token = generateToken(user.id, user.role, user.email);
     const refreshToken = generateRefreshToken(user.id);
 
     res.json({
@@ -93,6 +140,8 @@ const login = async (req, res, next) => {
         userId: user.id,
         username: user.username,
         email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
         role: user.role,
         token,
         refreshToken,
@@ -124,7 +173,7 @@ const refreshToken = async (req, res, next) => {
       });
     }
 
-    const newToken = generateToken(user.id, user.role);
+    const newToken = generateToken(user.id, user.role, user.email);
     const newRefreshToken = generateRefreshToken(user.id);
 
     res.json({

@@ -60,23 +60,16 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await authAPI.register(userData);
-      const { token, refreshToken, userId } = response.data.data;
+      const { token, refreshToken, ...userInfo } = response.data.data;
 
       localStorage.setItem('token', token);
       localStorage.setItem('refreshToken', refreshToken);
+      localStorage.setItem('user', JSON.stringify(userInfo));
 
-      const newUser = {
-        userId,
-        email: userData.email,
-        username: userData.username,
-        role: userData.role || 'user',
-      };
-
-      localStorage.setItem('user', JSON.stringify(newUser));
-      setUser(newUser);
+      setUser(userInfo);
       setIsAuthenticated(true);
 
-      return { success: true, data: newUser };
+      return { success: true, data: userInfo };
     } catch (error) {
       return {
         success: false,
