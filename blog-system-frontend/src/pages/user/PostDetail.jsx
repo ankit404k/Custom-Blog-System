@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
 import postsService from '../../services/postsService';
+import CommentForm from '../../components/User/CommentForm';
+import CommentList from '../../components/User/CommentList';
 
 const PostDetail = () => {
   const { slug } = useParams();
@@ -209,6 +211,17 @@ const PostDetail = () => {
               Share on WhatsApp
             </button>
           </div>
+        </div>
+
+        {/* Comments Section */}
+        <div className="mt-12 pt-8 border-t">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Comments</h2>
+          
+          <div className="mb-8">
+            <CommentForm postId={post.id} onCommentSubmitted={() => {}} />
+          </div>
+
+          <CommentList postId={post.id} />
         </div>
       </article>
 
