@@ -6,6 +6,8 @@ import Footer from './components/Shared/Footer';
 
 import AdminLogin from './pages/auth/AdminLogin';
 import UserLogin from './pages/auth/UserLogin';
+import AdminRegister from './pages/auth/AdminRegister';
+import UserRegister from './pages/auth/UserRegister';
 
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminPosts from './pages/admin/Posts';
@@ -26,10 +28,27 @@ const PrivateRoute = ({ children, adminOnly = false }) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" />;
+    return <Navigate to={adminOnly ? "/admin/login" : "/login"} />;
   }
 
   if (adminOnly && user?.role !== 'admin') {
+    return <Navigate to="/" />;
+  }
+
+  return children;
+};
+
+const AuthRoute = ({ children, forAdmin = false }) => {
+  const { isAuthenticated, user, loading } = useAuth();
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  }
+
+  if (isAuthenticated) {
+    if (user?.role === 'admin') {
+      return <Navigate to="/admin/dashboard" />;
+    }
     return <Navigate to="/" />;
   }
 
@@ -45,8 +64,11 @@ const AppRoutes = () => {
           <Route path="/" element={<Home />} />
           <Route path="/posts" element={<Posts />} />
           <Route path="/posts/:id" element={<PostDetail />} />
-          <Route path="/login" element={<UserLogin />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
+          
+          <Route path="/login" element={<AuthRoute><UserLogin /></AuthRoute>} />
+          <Route path="/register" element={<AuthRoute><UserRegister /></AuthRoute>} />
+          <Route path="/admin/login" element={<AuthRoute forAdmin={true}><AdminLogin /></AuthRoute>} />
+          <Route path="/admin/register" element={<AuthRoute forAdmin={true}><AdminRegister /></AuthRoute>} />
           
           <Route
             path="/profile"

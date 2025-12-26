@@ -24,7 +24,10 @@ const UserLogin = () => {
     setError('');
     setLoading(true);
 
-    const result = await login(formData);
+    const result = await login({
+      ...formData,
+      user_type: 'user',
+    });
 
     if (result.success) {
       navigate('/');
