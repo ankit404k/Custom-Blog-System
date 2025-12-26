@@ -76,11 +76,16 @@ export const postsAPI = {
 
 export const commentsAPI = {
   getCommentsByPostId: (postId) => api.get(`/comments/post/${postId}`),
+  getCommentById: (id) => api.get(`/comments/${id}`),
   createComment: (data) => api.post('/comments', data),
   updateComment: (id, data) => api.put(`/comments/${id}`, data),
   deleteComment: (id) => api.delete(`/comments/${id}`),
   approveComment: (id) => api.patch(`/comments/${id}/approve`),
-  rejectComment: (id) => api.patch(`/comments/${id}/reject`),
+  rejectComment: (id, data) => api.patch(`/comments/${id}/reject`, data),
+  flagComment: (id, data) => api.post(`/comments/${id}/flag`, data),
+  getAllComments: (params) => api.get('/comments', { params }),
+  bulkModerate: (data) => api.post('/comments/bulk-moderate', data),
+  getCommentStats: () => api.get('/comments/stats'),
 };
 
 export const usersAPI = {

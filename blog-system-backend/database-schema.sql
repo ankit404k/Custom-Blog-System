@@ -52,6 +52,9 @@ CREATE TABLE IF NOT EXISTS comments (
     user_id INT NOT NULL,
     content TEXT NOT NULL,
     status ENUM('approved', 'pending', 'rejected') NOT NULL DEFAULT 'pending',
+    rejection_reason TEXT,
+    flag_count INT DEFAULT 0,
+    flag_reason TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
@@ -60,7 +63,8 @@ CREATE TABLE IF NOT EXISTS comments (
     INDEX idx_post_id (post_id),
     INDEX idx_user_id (user_id),
     INDEX idx_status (status),
-    INDEX idx_deleted_at (deleted_at)
+    INDEX idx_deleted_at (deleted_at),
+    INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Analytics table
