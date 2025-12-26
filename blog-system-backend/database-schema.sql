@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS posts (
     slug VARCHAR(500) NOT NULL UNIQUE,
     status ENUM('draft', 'published') NOT NULL DEFAULT 'draft',
     featured_image VARCHAR(500),
+    published_at TIMESTAMP NULL DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL DEFAULT NULL,
@@ -39,6 +40,7 @@ CREATE TABLE IF NOT EXISTS posts (
     INDEX idx_user_id (user_id),
     INDEX idx_slug (slug),
     INDEX idx_status (status),
+    INDEX idx_published_at (published_at),
     INDEX idx_created_at (created_at),
     INDEX idx_deleted_at (deleted_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

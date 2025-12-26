@@ -11,12 +11,15 @@ import UserRegister from './pages/auth/UserRegister';
 
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminPosts from './pages/admin/Posts';
+import AdminCreatePost from './pages/admin/CreatePost';
 import AdminUsers from './pages/admin/Users';
 import AdminAnalytics from './pages/admin/Analytics';
 import AdminComments from './pages/admin/Comments';
 
 import Home from './pages/user/Home';
 import Posts from './pages/user/Posts';
+import MyPosts from './pages/user/MyPosts';
+import CreatePost from './pages/user/CreatePost';
 import Profile from './pages/user/Profile';
 import PostDetail from './pages/user/PostDetail';
 
@@ -63,18 +66,45 @@ const AppRoutes = () => {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/posts" element={<Posts />} />
-          <Route path="/posts/:id" element={<PostDetail />} />
-          
+          <Route path="/posts/:slug" element={<PostDetail />} />
+
           <Route path="/login" element={<AuthRoute><UserLogin /></AuthRoute>} />
           <Route path="/register" element={<AuthRoute><UserRegister /></AuthRoute>} />
           <Route path="/admin/login" element={<AuthRoute forAdmin={true}><AdminLogin /></AuthRoute>} />
           <Route path="/admin/register" element={<AuthRoute forAdmin={true}><AdminRegister /></AuthRoute>} />
-          
+
           <Route
             path="/profile"
             element={
               <PrivateRoute>
                 <Profile />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/user/my-posts"
+            element={
+              <PrivateRoute>
+                <MyPosts />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/user/posts/new"
+            element={
+              <PrivateRoute>
+                <CreatePost />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/user/posts/edit/:id"
+            element={
+              <PrivateRoute>
+                <CreatePost />
               </PrivateRoute>
             }
           />
@@ -93,6 +123,24 @@ const AppRoutes = () => {
             element={
               <PrivateRoute adminOnly={true}>
                 <AdminPosts />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/admin/posts/new"
+            element={
+              <PrivateRoute adminOnly={true}>
+                <AdminCreatePost />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/admin/posts/edit/:id"
+            element={
+              <PrivateRoute adminOnly={true}>
+                <AdminCreatePost />
               </PrivateRoute>
             }
           />
