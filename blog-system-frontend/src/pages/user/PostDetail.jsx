@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
 import postsService from '../../services/postsService';
+import CommentForm from '../../components/User/CommentForm';
+import CommentList from '../../components/User/CommentList';
 
 const PostDetail = () => {
   const { slug } = useParams();
@@ -23,7 +25,6 @@ const PostDetail = () => {
       const response = await postsService.getPostBySlug(slug);
       setPost(response.data);
 
-      // Fetch related posts (excluding current post)
       fetchRelatedPosts(response.data.id);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load post');
@@ -56,6 +57,11 @@ const PostDetail = () => {
     }
   };
 
+  const handleCommentCreated = () => {
+    // Refresh the post to update comment count
+    fetchPost();
+  };
+
   const canEdit = user && (user.id === post?.author_id || user.role === 'admin');
 
   if (loading) {
@@ -78,7 +84,7 @@ const PostDetail = () => {
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
           {error}
         </div>
-        <Link to="/" className="inline-block mt-4 text-blue-600 hover:text-blue-800">
+        <Link to="/posts" className="inline-block mt-4 text-blue-600 hover:text-blue-800">
           ← Back to posts
         </Link>
       </div>
@@ -94,7 +100,6 @@ const PostDetail = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <article className="max-w-4xl mx-auto px-6 py-8">
-        {/* Back button */}
         <Link
           to="/posts"
           className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-6 transition-colors"
@@ -105,7 +110,6 @@ const PostDetail = () => {
           Back to posts
         </Link>
 
-        {/* Featured Image */}
         {post.featured_image && (
           <img
             src={post.featured_image}
@@ -114,7 +118,6 @@ const PostDetail = () => {
           />
         )}
 
-        {/* Header */}
         <header className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">{post.title}</h1>
 
@@ -163,7 +166,6 @@ const PostDetail = () => {
           </div>
         </header>
 
-        {/* Author Bio */}
         {post.bio && (
           <div className="bg-gray-100 rounded-lg p-4 mb-8">
             <h3 className="font-semibold text-gray-900 mb-2">About the Author</h3>
@@ -171,13 +173,11 @@ const PostDetail = () => {
           </div>
         )}
 
-        {/* Content */}
         <div
           className="prose prose-lg max-w-none bg-white rounded-lg shadow-sm p-8"
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
 
-        {/* Actions */}
         {canEdit && (
           <div className="mt-8 pt-6 border-t flex justify-end space-x-4">
             <Link
@@ -195,7 +195,6 @@ const PostDetail = () => {
           </div>
         )}
 
-        {/* Share Buttons */}
         <div className="mt-8 pt-6 border-t">
           <h3 className="text-sm font-medium text-gray-700 mb-3">Share this post</h3>
           <div className="flex space-x-3">
@@ -210,9 +209,20 @@ const PostDetail = () => {
             </button>
           </div>
         </div>
+
+        <section className="mt-12">
+          <div className="border-t pt-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Comments</h2>
+
+            <CommentForm postId={post.id} onCommentCreated={handleCommentCreated} />
+
+            <div className="mt-8">
+              <CommentList postId={post.id} />
+            </div>
+          </div>
+        </section>
       </article>
 
-      {/* Related Posts Sidebar */}
       {relatedPosts.length > 0 && (
         <aside className="max-w-4xl mx-auto px-6 pb-12">
           <div className="bg-white rounded-lg shadow-sm p-6">

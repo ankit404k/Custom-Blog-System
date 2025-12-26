@@ -275,17 +275,203 @@ const Post = {
 const Comment = {
   findById: async (id) => {
     const [rows] = await pool.query(
-      'SELECT * FROM comments WHERE id = ? AND deleted_at IS NULL',
+      `SELECT c.*, u.username, u.first_name, u.last_name, u.profile_picture
+       FROM comments c
+       JOIN users u ON u.id = c.user_id
+       WHERE c.id = ? AND c.deleted_at IS NULL`,
       [id]
     );
     return rows[0];
   },
 
-  findByPostId: async (postId) => {
+  findByIdWithUser: async (id) => {
     const [rows] = await pool.query(
-      'SELECT * FROM comments WHERE post_id = ? AND deleted_at IS NULL ORDER BY created_at DESC',
-      [postId]
+      `SELECT c.*, u.username, u.first_name, u.last_name, u.profile_picture
+       FROM comments c
+       JOIN users u ON u.id = c.user_id
+       WHERE c.id = ? AND c.deleted_at IS NULL`,
+      [id]
     );
+    return rows[0];
+  },
+
+  findByPostId: async (postId, options = {}) => {
+    const { status = 'approved', page = 1, limit = 10, sort = 'newest' } = options;
+    const offset = (page - 1) * limit;
+
+    let query = `
+      SELECT c.*, u.username, u.first_name, u.last_name, u.profile_picture
+      FROM comments c
+      JOIN users u ON u.id = c.user_id
+      WHERE c.post_id = ? AND c.deleted_at IS NULL
+    `;
+    const params = [postId];
+
+    if (status === 'all') {
+      // Admin view - include all statuses
+    } else if (status) {
+      query += ' AND c.status = ?';
+      params.push(status);
+    }
+
+    // Sorting
+    const sortOrder = sort === 'oldest' ? 'ASC' : 'DESC';
+    query += ` ORDER BY c.created_at ${sortOrder}`;
+
+    query += ' LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const [rows] = await pool.query(query, params);
+    return rows;
+  },
+
+  findByPostIdForPublic: async (postId, options = {}) => {
+    const { page = 1, limit = 10, sort = 'newest' } = options;
+    const offset = (page - 1) * limit;
+
+    const query = `
+      SELECT c.*, u.username, u.first_name, u.last_name, u.profile_picture
+      FROM comments c
+      JOIN users u ON u.id = c.user_id
+      WHERE c.post_id = ? AND c.deleted_at IS NULL AND c.status = 'approved'
+      ORDER BY c.created_at ${sort === 'oldest' ? 'ASC' : 'DESC'}
+      LIMIT ? OFFSET ?
+    `;
+
+    const [rows] = await pool.query(query, [postId, limit, offset]);
+    return rows;
+  },
+
+  findByUserId: async (userId, options = {}) => {
+    const { page = 1, limit = 10, status } = options;
+    const offset = (page - 1) * limit;
+
+    let query = `
+      SELECT c.*, p.title as post_title, p.slug as post_slug
+      FROM comments c
+      JOIN posts p ON p.id = c.post_id
+      WHERE c.user_id = ? AND c.deleted_at IS NULL
+    `;
+    const params = [userId];
+
+    if (status) {
+      query += ' AND c.status = ?';
+      params.push(status);
+    }
+
+    query += ' ORDER BY c.created_at DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const [rows] = await pool.query(query, params);
+    return rows;
+  },
+
+  findRecentByUser: async (userId, postId, since) => {
+    const [rows] = await pool.query(
+      `SELECT * FROM comments
+       WHERE user_id = ? AND post_id = ? AND created_at >= ?
+       AND deleted_at IS NULL
+       ORDER BY created_at DESC LIMIT 1`,
+      [userId, postId, since]
+    );
+    return rows[0];
+  },
+
+  getAllComments: async (options = {}) => {
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      post_id,
+      user_id,
+      search,
+      sortBy = 'created_at',
+      sortOrder = 'DESC'
+    } = options;
+    const offset = (page - 1) * limit;
+
+    let query = `
+      SELECT c.*, u.username, u.first_name, u.last_name, u.email,
+             p.title as post_title, p.slug as post_slug
+      FROM comments c
+      JOIN users u ON u.id = c.user_id
+      JOIN posts p ON p.id = c.post_id
+      WHERE c.deleted_at IS NULL
+    `;
+    const params = [];
+
+    if (status) {
+      query += ' AND c.status = ?';
+      params.push(status);
+    }
+
+    if (post_id) {
+      query += ' AND c.post_id = ?';
+      params.push(post_id);
+    }
+
+    if (user_id) {
+      query += ' AND c.user_id = ?';
+      params.push(user_id);
+    }
+
+    if (search) {
+      query += ' AND (c.content LIKE ? OR u.username LIKE ? OR u.email LIKE ?)';
+      const searchTerm = `%${search}%`;
+      params.push(searchTerm, searchTerm, searchTerm);
+    }
+
+    // Sorting
+    const allowedSortFields = ['created_at', 'status', 'c.id'];
+    const allowedSortOrders = ['ASC', 'DESC'];
+
+    if (allowedSortFields.includes(sortBy) && allowedSortOrders.includes(sortOrder)) {
+      query += ` ORDER BY c.${sortBy} ${sortOrder}`;
+    } else {
+      query += ' ORDER BY c.created_at DESC';
+    }
+
+    query += ' LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const [rows] = await pool.query(query, params);
+    return rows;
+  },
+
+  countComments: async (options = {}) => {
+    const { status, post_id, user_id } = options;
+
+    let query = 'SELECT COUNT(*) as total FROM comments WHERE deleted_at IS NULL';
+    const params = [];
+
+    if (status) {
+      query += ' AND status = ?';
+      params.push(status);
+    }
+
+    if (post_id) {
+      query += ' AND post_id = ?';
+      params.push(post_id);
+    }
+
+    if (user_id) {
+      query += ' AND user_id = ?';
+      params.push(user_id);
+    }
+
+    const [rows] = await pool.query(query, params);
+    return rows[0].total;
+  },
+
+  countByStatus: async () => {
+    const query = `
+      SELECT status, COUNT(*) as count
+      FROM comments
+      WHERE deleted_at IS NULL
+      GROUP BY status
+    `;
+
+    const [rows] = await pool.query(query);
     return rows;
   },
 
@@ -298,9 +484,23 @@ const Comment = {
   },
 
   update: async (id, commentData) => {
+    const fields = [];
+    const values = [];
+
+    Object.keys(commentData).forEach(key => {
+      if (commentData[key] !== undefined) {
+        fields.push(`${key} = ?`);
+        values.push(commentData[key]);
+      }
+    });
+
+    if (fields.length === 0) return 0;
+
+    values.push(id);
+
     const [result] = await pool.query(
-      'UPDATE comments SET ? WHERE id = ? AND deleted_at IS NULL',
-      [commentData, id]
+      `UPDATE comments SET ${fields.join(', ')} WHERE id = ? AND deleted_at IS NULL`,
+      values
     );
     return result.affectedRows;
   },
@@ -311,6 +511,63 @@ const Comment = {
       [id]
     );
     return result.affectedRows;
+  },
+
+  approve: async (id) => {
+    const [result] = await pool.query(
+      "UPDATE comments SET status = 'approved' WHERE id = ? AND deleted_at IS NULL",
+      [id]
+    );
+    return result.affectedRows;
+  },
+
+  reject: async (id, reason) => {
+    const [result] = await pool.query(
+      "UPDATE comments SET status = 'rejected', rejection_reason = ? WHERE id = ? AND deleted_at IS NULL",
+      [reason, id]
+    );
+    return result.affectedRows;
+  },
+
+  flag: async (id, reason) => {
+    const [result] = await pool.query(
+      "UPDATE comments SET flag_count = flag_count + 1, flag_reason = ? WHERE id = ? AND deleted_at IS NULL",
+      [reason, id]
+    );
+    return result.affectedRows;
+  },
+
+  getPendingComments: async (options = {}) => {
+    const { page = 1, limit = 10 } = options;
+    const offset = (page - 1) * limit;
+
+    const query = `
+      SELECT c.*, u.username, u.first_name, u.last_name, u.email,
+             p.title as post_title, p.slug as post_slug
+      FROM comments c
+      JOIN users u ON u.id = c.user_id
+      JOIN posts p ON p.id = c.post_id
+      WHERE c.status = 'pending' AND c.deleted_at IS NULL
+      ORDER BY c.created_at ASC
+      LIMIT ? OFFSET ?
+    `;
+
+    const [rows] = await pool.query(query, [limit, offset]);
+    return rows;
+  },
+
+  countPending: async () => {
+    const [rows] = await pool.query(
+      "SELECT COUNT(*) as total FROM comments WHERE status = 'pending' AND deleted_at IS NULL"
+    );
+    return rows[0].total;
+  },
+
+  countSpamFlags: async () => {
+    const [rows] = await pool.query(
+      "SELECT COUNT(*) as total FROM comments WHERE flag_count > 0 AND deleted_at IS NULL"
+    );
+    return rows[0].total;
   },
 };
 
@@ -349,7 +606,7 @@ const Analytics = {
 
   updateCommentsCount: async (postId) => {
     const [result] = await pool.query(
-      'UPDATE analytics SET comments_count = (SELECT COUNT(*) FROM comments WHERE post_id = ? AND deleted_at IS NULL) WHERE post_id = ?',
+      'UPDATE analytics SET comments_count = (SELECT COUNT(*) FROM comments WHERE post_id = ? AND deleted_at IS NULL AND status = "approved") WHERE post_id = ?',
       [postId, postId]
     );
     return result.affectedRows;
