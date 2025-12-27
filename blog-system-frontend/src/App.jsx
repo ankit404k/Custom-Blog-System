@@ -14,6 +14,7 @@ import AdminPosts from './pages/admin/Posts';
 import AdminCreatePost from './pages/admin/CreatePost';
 import AdminUsers from './pages/admin/Users';
 import AdminAnalytics from './pages/admin/Analytics';
+import AdminPostAnalytics from './pages/admin/PostAnalytics';
 import AdminComments from './pages/admin/Comments';
 
 import Home from './pages/user/Home';
@@ -22,6 +23,7 @@ import MyPosts from './pages/user/MyPosts';
 import CreatePost from './pages/user/CreatePost';
 import Profile from './pages/user/Profile';
 import PostDetail from './pages/user/PostDetail';
+import MyAnalytics from './pages/user/MyAnalytics';
 
 const PrivateRoute = ({ children, adminOnly = false }) => {
   const { isAuthenticated, user, loading } = useAuth();
@@ -110,6 +112,15 @@ const AppRoutes = () => {
           />
 
           <Route
+            path="/user/analytics"
+            element={
+              <PrivateRoute>
+                <MyAnalytics />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
             path="/admin/dashboard"
             element={
               <PrivateRoute adminOnly={true}>
@@ -159,6 +170,15 @@ const AppRoutes = () => {
             element={
               <PrivateRoute adminOnly={true}>
                 <AdminAnalytics />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/admin/analytics/posts"
+            element={
+              <PrivateRoute adminOnly={true}>
+                <AdminPostAnalytics />
               </PrivateRoute>
             }
           />

@@ -21,14 +21,31 @@ const Header = () => {
             {isAuthenticated ? (
               <>
                 <span className="text-gray-700">Welcome, {user?.username}</span>
-                {user?.role === 'admin' && (
-                  <Link to="/admin/dashboard" className="text-blue-600 hover:text-blue-800">
-                    Admin Dashboard
-                  </Link>
+                {user?.role === 'admin' ? (
+                  <>
+                    <Link to="/admin/dashboard" className="text-blue-600 hover:text-blue-800">
+                      Dashboard
+                    </Link>
+                    <Link to="/admin/analytics" className="text-blue-600 hover:text-blue-800">
+                      Analytics
+                    </Link>
+                    <Link to="/admin/analytics/posts" className="text-blue-600 hover:text-blue-800">
+                      Post Analytics
+                    </Link>
+                    <Link to="/admin/comments" className="text-blue-600 hover:text-blue-800">
+                      Comments
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/user/analytics" className="text-blue-600 hover:text-blue-800">
+                      My Analytics
+                    </Link>
+                    <Link to="/profile" className="text-blue-600 hover:text-blue-800">
+                      Profile
+                    </Link>
+                  </>
                 )}
-                <Link to="/profile" className="text-blue-600 hover:text-blue-800">
-                  Profile
-                </Link>
                 <button
                   onClick={handleLogout}
                   className="text-red-600 hover:text-red-800"
